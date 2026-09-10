@@ -1,88 +1,86 @@
 const API_URL = "https://1-2-aplicaciones-web-ia-sooty.vercel.app/api/chat";
 
 const form = document.getElementById("chatForm");
-const input = document.getElementById("messageInput");
+const fileInput = document.getElementById("imageInput");
 const messages = document.getElementById("messages");
 const sendButton = document.getElementById("sendButton");
 
-function addMessage(text, type) {
-   const container = document.createElement("div");
-   container.classList.add("message", type);
+// Convierte la imagen a Base64
+function convertFileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+    });
+}
 
-   const label = document.createElement("div");
-   label.classList.add("message-label");
-   label.textContent = type === "user" ? "Tú" : "IA";
+function addMessage(contentData, type) {
+    const container = document.createElement("div");
+    container.classList.add("message", type);
 
-   const content = document.createElement("div");
-   content.classList.add("message-content");
+    const label = document.createElement("div");
+    label.classList.add("message-label");
+    label.textContent = type === "user" ? "Tú (Imagen)" : "IA";
 
-   // Si es la IA o un mensaje de error, renderizamos Markdown a HTML
-   if (type === "assistant" && typeof marked !== "undefined") {
-       content.innerHTML = marked.parse(text);
-   } else {
-       content.textContent = text;
-   }
+    const content = document.createElement("div");
+    content.classList.add("message-content");
 
-   container.appendChild(label);
-   container.appendChild(content);
-   messages.appendChild(container);
+    if (type === "user" && contentData.imageSrc) {
+        const img = document.createElement("img");
+        img.src = contentData.imageSrc;
+        img.style.maxWidth = "250px";
+        img.style.borderRadius = "8px";
+        content.appendChild(img);
+    } else if (type === "assistant" && typeof marked !== "undefined") {
+        content.innerHTML = marked.parse(contentData.text || contentData);
+    } else {
+        content.textContent = typeof contentData === 'string' ? contentData : contentData.text;
+    }
 
-   messages.scrollTop = messages.scrollHeight;
+    container.appendChild(label);
+    container.appendChild(content);
+    messages.appendChild(container);
+    messages.scrollTop = messages.scrollHeight;
 
-   return container;
+    return container;
 }
 
 form.addEventListener("submit", async (event) => {
-   event.preventDefault();
+    event.preventDefault();
 
-   const message = input.value.trim();
+    const file = fileInput.files[0];
+    if (!file) return;
 
-   if (!message) {
-       return;
-   }
+    try {
+        const base64Image = await convertFileToBase64(file);
 
-   addMessage(message, "user");
+        // Renderiza la vista previa del usuario
+        addMessage({ imageSrc: base64Image }, "user");
 
-   input.value = "";
-   input.disabled = true;
-   sendButton.disabled = true;
+        fileInput.disabled = true;
+        sendButton.disabled = true;
 
-   const loading = addMessage("Pensando...", "loading");
+        const loading = addMessage("Analizando elementos y contando...", "loading");
 
-   try {
-       const response = await fetch(API_URL, {
-           method: "POST",
-           headers: {
-               "Content-Type": "application/json"
-           },
-           body: JSON.stringify({
-               message: message
-           })
-       });
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: base64Image })
+        });
 
-       const data = await response.json();
+        const data = await response.json();
+        loading.remove();
 
-       loading.remove();
+        if (!response.ok) throw new Error(data.error || "Error del servidor");
 
-       if (!response.ok) {
-           throw new Error(
-               data.error || "Error del servidor"
-           );
-       }
+        addMessage(data.reply, "assistant");
 
-       addMessage(data.reply, "assistant");
-   }
-   catch (error) {
-       loading.remove();
-
-       addMessage(
-           "Error: " + error.message,
-           "assistant"
-       );
-   }
-   finally {
-       input.disabled = false;
-       sendButton.disabled = false;
-       input.focus();
-   }
+    } catch (error) {
+        addMessage("Error: " + error.message, "assistant");
+    } finally {
+        fileInput.value = "";
+        fileInput.disabled = false;
+        sendButton.disabled = false;
+    }
 });

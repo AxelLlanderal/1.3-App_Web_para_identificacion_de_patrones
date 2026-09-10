@@ -3,9 +3,8 @@
 <head>
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Chat IA</title>
+   <title>Detección y Conteo de Elementos - IA</title>
    <link rel="stylesheet" href="assets/css/styles.css">
-   <!-- Librería para renderizar Markdown -->
    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
@@ -13,36 +12,33 @@
    <main class="app">
        <header class="header">
            <div>
-               <h1>Chat IA</h1>
-               <p>Inteligencia Artificial aplicada a las TIC</p>
+               <h1>Contador & Detector de Imagen</h1>
+               <p>Sube una imagen para identificar y contar sus elementos</p>
            </div>
-           <span class="status">● IA disponible</span>
+           <span class="status">● Visión IA lista</span>
        </header>
 
        <section id="messages" class="messages" aria-live="polite">
            <div class="message assistant">
                <div class="message-label">IA</div>
                <div class="message-content">
-                   Hola. Soy tu asistente de Inteligencia Artificial.
-                   ¿En qué puedo ayudarte?
+                   Hola. Selecciona una imagen desde tu dispositivo para que pueda analizarla, señalar y contar todos sus elementos.
                </div>
            </div>
        </section>
 
        <form id="chatForm" class="chat-form">
            <input
-               id="messageInput"
-               type="text"
-               maxlength="1000"
-               placeholder="Escribe una pregunta..."
-               autocomplete="off"
+               id="imageInput"
+               type="file"
+               accept="image/*"
                required
            >
-           <button id="sendButton" type="submit">Enviar</button>
+           <button id="sendButton" type="submit">Analizar Imagen</button>
        </form>
 
        <footer class="footer">
-           Desarrollado por <strong>Axel Llanderal Arteaga</strong> Github <strong>github.com/AxelLlanderal</strong>
+           Desarrollado por <strong>Axel Llanderal Arteaga</strong>
        </footer>
    </main>
 
