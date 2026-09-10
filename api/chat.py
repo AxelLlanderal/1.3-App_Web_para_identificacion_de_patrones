@@ -34,16 +34,15 @@ class handler(BaseHTTPRequestHandler):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
 
-            # CAMBIO AQUÍ: Se aumenta el límite de 5,000 bytes a 4 MB (4 * 1024 * 1024)
             if content_length <= 0 or content_length > 4 * 1024 * 1024:
-                self.send_json(413, {"error": "Petición no válida o la imagen supera los 4MB."})
+                self.send_json(413, {"error": "Petición demasiado grande."})
                 return
 
             body = self.rfile.read(content_length)
             data = json.loads(body.decode("utf-8"))
 
             image_data = data.get("image")
-            prompt_text = str(data.get("message", "")).strip() or "Identifica y cuenta los elementos presentes en la imagen."
+            target = str(data.get("message", "personas")).strip()
 
             if not image_data:
                 self.send_json(400, {"error": "Se requiere adjuntar una imagen."})
@@ -56,28 +55,39 @@ class handler(BaseHTTPRequestHandler):
 
             client = OpenAI(api_key=api_key)
 
+            prompt_system = f"""
+            Locate all instances of '{target}' in the image.
+            Return a strict JSON object with key 'detections' containing a list of objects.
+            Each object must have:
+            - "box_2d": [ymin, xmin, ymax, xmax] normalized on a 0 to 1000 scale.
+            - "label": string description of the item found.
+            Do not include Markdown syntax, return pure JSON.
+            """
+
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
+                response_format={"type": "json_object"},
                 messages=[
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": prompt_text},
+                            {"type": "text", "text": prompt_system},
                             {
                                 "type": "image_url",
                                 "image_url": {
                                     "url": image_data,
-                                    "detail": "low"  # 'low' para responder más rápido y gastar menos tokens
+                                    "detail": "high"
                                 }
                             }
                         ]
                     }
                 ],
-                max_tokens=600
+                max_tokens=1000
             )
 
-            self.send_json(200, {"reply": response.choices[0].message.content})
+            result_json = json.loads(response.choices[0].message.content)
+            self.send_json(200, {"detections": result_json.get("detections", [])})
 
         except Exception as error:
-            print(f"Error en /api/chat: {error}")
+            print(f"Error: {error}")
             self.send_json(500, {"error": f"Error del servidor: {type(error).__name__}"})

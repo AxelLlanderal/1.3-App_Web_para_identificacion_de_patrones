@@ -1,53 +1,99 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Detección y Conteo de Elementos - IA</title>
-   <link rel="stylesheet" href="assets/css/styles.css">
-   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contador & Detector de Objetos</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --text: #f8fafc;
+      --subtext: #94a3b8;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      width: 100%;
+      background: var(--card);
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    h1 { margin-top: 0; font-size: 1.5rem; text-align: center; }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    label { font-size: 0.9rem; color: var(--subtext); }
+    input[type="text"] {
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    input[type="file"] { display: none; }
+    .upload-btn, .action-btn {
+      padding: 12px 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      text-align: center;
+      transition: 0.2s;
+    }
+    .upload-btn:hover, .action-btn:hover { background: var(--accent-hover); }
+    .preview-area {
+      position: relative;
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    canvas {
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    .status { margin-top: 10px; font-weight: bold; text-align: center; }
+  </style>
 </head>
 <body>
 
-   <main class="app">
-       <header class="header">
-           <div>
-               <h1>Contador & Detector de Imagen</h1>
-               <p>Sube una imagen e indica qué deseas contar</p>
-           </div>
-           <span class="status">● Visión IA lista</span>
-       </header>
+<div class="container">
+  <h1>Detector & Contador de Objetos</h1>
 
-       <section id="messages" class="messages" aria-live="polite">
-           <div class="message assistant">
-               <div class="message-label">IA</div>
-               <div class="message-content">
-                   Selecciona una imagen e indica en el texto lo que deseas analizar o contar (ej: "cuenta solo las mujeres" o "identifica todos los objetos").
-               </div>
-           </div>
-       </section>
+  <div class="input-group">
+    <label for="prompt">¿Qué quieres contar en la imagen?</label>
+    <input type="text" id="prompt" placeholder="Ej: personas, hombres, mujeres, autos, sillas..." value="personas" />
 
-       <form id="chatForm" class="chat-form">
-           <input
-               id="messageInput"
-               type="text"
-               placeholder="¿Qué quieres que cuente? (opcional)"
-               autocomplete="off"
-           >
-           <input
-               id="imageInput"
-               type="file"
-               accept="image/*"
-               required
-           >
-           <button id="sendButton" type="submit">Analizar</button>
-       </form>
+    <label class="upload-btn" for="imageInput">📷 Subir Imagen</label>
+    <input type="file" id="imageInput" accept="image/*" />
+  </div>
 
-       <footer class="footer">
-           Desarrollado por <strong>Axel Llanderal Arteaga</strong>
-       </footer>
-   </main>
+  <div class="status" id="statusText"></div>
 
-   <script src="assets/js/app.js"></script>
+  <div class="preview-area">
+    <canvas id="resultCanvas"></canvas>
+  </div>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
