@@ -1,51 +1,53 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Detector & Contador de Objetos - IA</title>
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="assets/css/styles.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detector & Contador de Objetos - IA</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
+
 <body>
 
-  <main class="app">
-    <header class="header">
-      <div>
-        <h1>Detector & Contador de Objetos</h1>
-        <p>Identifica y resalta patrones en imágenes</p>
-      </div>
-      <span class="status">● Visión IA Lista</span>
-    </header>
+    <main class="app">
+        <header class="header">
+            <div>
+                <h1>Detector & Contador de Objetos</h1>
+                <p>Identifica y resalta patrones en imágenes</p>
+            </div>
+            <span class="status">● Visión IA Lista</span>
+        </header>
 
-    <section class="controls">
-      <div class="input-field">
-        <label for="promptInput">¿Qué deseas detectar o contar?</label>
-        <input 
-          type="text" 
-          id="promptInput" 
-          placeholder="Ej: personas, mujeres, hombres, autos, lentes..." 
-          value="personas"
-        />
-      </div>
+        <section class="controls">
+            <div class="input-field">
+                <label for="promptInput">¿Qué deseas detectar o contar?</label>
+                <input type="text" id="promptInput" placeholder="Ej: personas, mujeres, hombres, autos, lentes..."
+                    value="personas" />
+            </div>
 
-      <div class="upload-field">
-        <label for="imageInput" class="upload-btn">📷 Seleccionar Imagen</label>
-        <input type="file" id="imageInput" accept="image/*" />
-      </div>
-    </section>
+            <div class="upload-field">
+                <label for="imageInput" class="upload-btn">📷 Seleccionar Imagen</label>
+                <input type="file" id="imageInput" accept="image/*" />
+            </div>
+            <button id="downloadBtn" class="download-btn" style="display: none;">
+                📥 Descargar Imagen con Resultados
+            </button>
+        </section>
 
-    <div id="statusText" class="status-message"></div>
+        <div id="statusText" class="status-message"></div>
 
-    <section class="preview-container">
-      <canvas id="resultCanvas"></canvas>
-    </section>
+        <section class="preview-container">
+            <canvas id="resultCanvas"></canvas>
+        </section>
 
-    <footer class="footer">
-      Desarrollado por <strong>Axel Llanderal Arteaga</strong>
-    </footer>
-  </main>
+        <footer class="footer">
+            Desarrollado por <strong>Axel Llanderal Arteaga</strong>
+        </footer>
+    </main>
 
-  <script src="assets/js/app.js"></script>
+    <script src="assets/js/app.js"></script>
 </body>
+
 </html>

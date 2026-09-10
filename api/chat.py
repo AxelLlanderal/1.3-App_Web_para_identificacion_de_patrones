@@ -58,12 +58,14 @@ class handler(BaseHTTPRequestHandler):
             client = OpenAI(api_key=api_key)
 
             prompt_system = f"""
-            Locate all instances of '{target}' in the image.
-            Return a strict JSON object with key 'detections' containing a list of objects.
-            Each object must have:
-            - "box_2d": [ymin, xmin, ymax, xmax] normalized on a 0 to 1000 scale.
-            - "label": short string description of the item found.
-            Do not include Markdown syntax in response. Return pure JSON only.
+            Locate all exact instances of '{target}' in the image.
+            Return a strict JSON object with key 'detections' containing a list of detected objects.
+
+            For each object, provide:
+            - "box_2d": [ymin, xmin, ymax, xmax] as numbers on a normalized 0 to 1000 scale, where (0,0) is top-left and (1000,1000) is bottom-right. Be extremely precise and fit the bounding box tightly around the target.
+            - "label": short string label of what was detected.
+
+            Return raw JSON only, no markdown formatting.
             """
 
             response = client.chat.completions.create(
@@ -93,3 +95,4 @@ class handler(BaseHTTPRequestHandler):
         except Exception as error:
             print(f"Error en /api/chat: {error}")
             self.send_json(500, {"error": f"Error interno: {type(error).__name__}"})
+
