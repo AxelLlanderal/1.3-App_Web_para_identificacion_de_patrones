@@ -15,8 +15,7 @@
    --ai-msg-bg: rgba(51, 65, 85, 0.5);
 }
 
-html,
-body {
+html, body {
    margin: 0;
    padding: 0;
    height: 100vh;
@@ -94,7 +93,6 @@ body {
 .messages::-webkit-scrollbar {
    width: 6px;
 }
-
 .messages::-webkit-scrollbar-thumb {
    background: rgba(255, 255, 255, 0.15);
    border-radius: 10px;
@@ -108,15 +106,8 @@ body {
 }
 
 @keyframes fadeIn {
-   from {
-      opacity: 0;
-      transform: translateY(8px);
-   }
-
-   to {
-      opacity: 1;
-      transform: translateY(0);
-   }
+   from { opacity: 0; transform: translateY(8px); }
+   to { opacity: 1; transform: translateY(0); }
 }
 
 .message.user {
@@ -163,21 +154,16 @@ body {
 .message-content p {
    margin: 0 0 10px 0;
 }
-
 .message-content p:last-child {
    margin-bottom: 0;
 }
-
-.message-content ul,
-.message-content ol {
+.message-content ul, .message-content ol {
    margin: 10px 0;
    padding-left: 22px;
 }
-
 .message-content li {
    margin-bottom: 4px;
 }
-
 .message-content code {
    background: rgba(0, 0, 0, 0.3);
    color: #38bdf8;
@@ -186,12 +172,10 @@ body {
    font-family: 'Fira Code', Consolas, monospace;
    font-size: 13.5px;
 }
-
 .message.user .message-content code {
    background: rgba(255, 255, 255, 0.2);
    color: #ffffff;
 }
-
 .message-content pre {
    background: #090d16;
    border: 1px solid var(--border-color);
@@ -200,7 +184,6 @@ body {
    overflow-x: auto;
    margin: 12px 0;
 }
-
 .message-content pre code {
    background: transparent;
    padding: 0;
