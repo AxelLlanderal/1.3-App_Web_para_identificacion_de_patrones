@@ -1,77 +1,64 @@
 import os
 import json
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from openai import OpenAI
 
 app = Flask(__name__)
-CORS(app)
-
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
     try:
         data = request.get_json()
-        user_message = data.get("message", "people")
-        image_data = data.get("image")
+        target = data.get("message", "personas")
+        image_base64 = data.get("image", "")
 
-        if not image_data:
-            return jsonify({"error": "No image provided"}), 400
+        if not image_base64:
+            return jsonify({"error": "No se proporcionó imagen"}), 400
 
-        # Prompt optimizado para detección estricta de objetos/personas
-        system_prompt = (
-            f"You are a precise object detection system. Locate ALL instances of the user's request: '{user_message}'.\n"
-            "Respond ONLY with a valid JSON object matching this structure:\n"
-            "{\n"
-            '  "detections": [\n'
-            '    {\n'
-            '      "box_2d": [ymin, xmin, ymax, xmax],\n'
-            '      "label": "short label"\n'
-            "    }\n"
-            "  ]\n"
-            "}\n"
+        # Asegura prefijo data:image
+        if not image_base64.startswith("data:image"):
+            image_base64 = f"data:image/jpeg;base64,{image_base64}"
+
+        prompt_system = (
+            "You are an expert computer vision system for object detection and precise bounding box locator.\n"
+            f"Detect EVERY individual instance matching '{target}' in the image without omitting any.\n"
             "Rules:\n"
-            "- Coordinates must be normalized integers from 0 to 1000.\n"
-            "- 'ymin', 'xmin', 'ymax', 'xmax' must fit tightly around the entire detected target.\n"
-            "- Detect EVERY single matching target in the image, do not skip any.\n"
-            "- Do NOT wrap output in markdown ```json ``` blocks. Return pure raw JSON."
+            "1. Output exact coordinates [ymin, xmin, ymax, xmax] normalized on a 0 to 1000 scale.\n"
+            "2. Ensure each bounding box tightly fits the detected subject/object.\n"
+            "3. Do NOT duplicate coordinates or place all boxes in the same spot.\n"
+            "4. Return a valid JSON with key 'detections' containing objects with 'box_2d' and 'label'."
         )
 
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o",  # Cambiado al modelo superior de visión
+            temperature=0.1,
             response_format={"type": "json_object"},
             messages=[
                 {
                     "role": "system",
-                    "content": system_prompt
+                    "content": prompt_system
                 },
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": f"Detect all: {user_message}"},
+                        {"type": "text", "text": f"Detect all instances of '{target}'."},
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": image_data,
-                                "detail": "high"
+                                "url": image_base64,
+                                "detail": "high"  # Obliga a analizar en alta definición
                             }
                         }
                     ]
                 }
-            ],
-            temperature=0.1,
-            max_tokens=1500
+            ]
         )
 
-        raw_content = response.choices[0].message.content.strip()
-        parsed_data = json.loads(raw_content)
+        result_content = response.choices[0].message.content
+        result_json = json.loads(result_content)
 
-        return jsonify(parsed_data)
+        return jsonify(result_json)
 
     except Exception as e:
-        print("API Error:", str(e))
         return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(port=3000)

@@ -111,7 +111,8 @@ function drawDetections(detections) {
 
 function compressImage(img) {
   const tempCanvas = document.createElement("canvas");
-  const MAX_WIDTH = 1024;
+  // Aumentar la resolución máxima para conservar detalles
+  const MAX_WIDTH = 2048; 
   let width = img.width;
   let height = img.height;
 
@@ -125,7 +126,8 @@ function compressImage(img) {
   const tempCtx = tempCanvas.getContext("2d");
   tempCtx.drawImage(img, 0, 0, width, height);
 
-  return tempCanvas.toDataURL("image/jpeg", 0.8);
+  // Subir la calidad del JPG al 95%
+  return tempCanvas.toDataURL("image/jpeg", 0.95); 
 }
 
 if (downloadBtn) {
