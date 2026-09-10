@@ -3,6 +3,7 @@ import os
 from http.server import BaseHTTPRequestHandler
 from openai import OpenAI
 
+# Lee el origen permitido configurado en Vercel
 ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "").strip().rstrip("/")
 
 class handler(BaseHTTPRequestHandler):
@@ -34,8 +35,9 @@ class handler(BaseHTTPRequestHandler):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
 
+            # Permite imágenes en Base64 de hasta 4MB
             if content_length <= 0 or content_length > 4 * 1024 * 1024:
-                self.send_json(413, {"error": "Petición demasiado grande."})
+                self.send_json(413, {"error": "Petición demasiado grande (máx 4MB)."})
                 return
 
             body = self.rfile.read(content_length)
@@ -45,7 +47,7 @@ class handler(BaseHTTPRequestHandler):
             target = str(data.get("message", "personas")).strip()
 
             if not image_data:
-                self.send_json(400, {"error": "Se requiere adjuntar una imagen."})
+                self.send_json(400, {"error": "Se requiere una imagen en la petición."})
                 return
 
             api_key = os.environ.get("OPENAI_API_KEY")
@@ -60,8 +62,8 @@ class handler(BaseHTTPRequestHandler):
             Return a strict JSON object with key 'detections' containing a list of objects.
             Each object must have:
             - "box_2d": [ymin, xmin, ymax, xmax] normalized on a 0 to 1000 scale.
-            - "label": string description of the item found.
-            Do not include Markdown syntax, return pure JSON.
+            - "label": short string description of the item found.
+            Do not include Markdown syntax in response. Return pure JSON only.
             """
 
             response = client.chat.completions.create(
@@ -89,5 +91,5 @@ class handler(BaseHTTPRequestHandler):
             self.send_json(200, {"detections": result_json.get("detections", [])})
 
         except Exception as error:
-            print(f"Error: {error}")
-            self.send_json(500, {"error": f"Error del servidor: {type(error).__name__}"})
+            print(f"Error en /api/chat: {error}")
+            self.send_json(500, {"error": f"Error interno: {type(error).__name__}"})
