@@ -6,12 +6,37 @@ const fileInput = document.getElementById("imageInput");
 const messages = document.getElementById("messages");
 const sendButton = document.getElementById("sendButton");
 
-function convertFileToBase64(file) {
+// Función para comprimir y redimensionar la imagen antes de enviarla
+function processAndResizeImage(file, maxWidth = 1024, quality = 0.8) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = (error) => reject(error);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Convierte a JPEG liviano (soluciona problemas de formato AVIF/PNG pesados)
+                const dataUrl = canvas.toDataURL("image/jpeg", quality);
+                resolve(dataUrl);
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
     });
 }
 
@@ -63,27 +88,31 @@ form.addEventListener("submit", async (event) => {
     if (!file) return;
 
     try {
-        const base64Image = await convertFileToBase64(file);
-
-        addMessage({ text: userInstruction, imageSrc: base64Image }, "user");
-
         fileInput.disabled = true;
         textInput.disabled = true;
         sendButton.disabled = true;
 
-        const loading = addMessage("Procesando imagen...", "loading");
+        const loading = addMessage("Procesando y optimizando imagen...", "loading");
+
+        // Redimensiona y convierte a JPEG optimizado en el navegador
+        const optimizedBase64Image = await processAndResizeImage(file);
+
+        loading.remove();
+        addMessage({ text: userInstruction, imageSrc: optimizedBase64Image }, "user");
+
+        const aiLoading = addMessage("Analizando elementos...", "loading");
 
         const response = await fetch(API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
-                image: base64Image,
+                image: optimizedBase64Image,
                 message: userInstruction
             })
         });
 
         const data = await response.json();
-        loading.remove();
+        aiLoading.remove();
 
         if (!response.ok) throw new Error(data.error || "Error al procesar la imagen");
 
