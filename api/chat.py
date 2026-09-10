@@ -1,64 +1,99 @@
-import os
 import json
-from flask import Flask, request, jsonify
+import os
+from http.server import BaseHTTPRequestHandler
 from openai import OpenAI
 
-app = Flask(__name__)
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Lee el origen permitido configurado en Vercel
+ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "").strip().rstrip("/")
 
-@app.route('/api/chat', methods=['POST'])
-def chat():
-    try:
-        data = request.get_json()
-        target = data.get("message", "personas")
-        image_base64 = data.get("image", "")
+class handler(BaseHTTPRequestHandler):
 
-        if not image_base64:
-            return jsonify({"error": "No se proporcionó imagen"}), 400
+    def add_cors_headers(self):
+        origin = self.headers.get("Origin", "")
+        if not ALLOWED_ORIGIN or origin.strip().rstrip("/") == ALLOWED_ORIGIN:
+            self.send_header("Access-Control-Allow-Origin", origin if origin else "*")
+            self.send_header("Vary", "Origin")
 
-        # Asegura prefijo data:image
-        if not image_base64.startswith("data:image"):
-            image_base64 = f"data:image/jpeg;base64,{image_base64}"
+    def send_json(self, status_code, data):
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.add_cors_headers()
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
-        prompt_system = (
-            "You are an expert computer vision system for object detection and precise bounding box locator.\n"
-            f"Detect EVERY individual instance matching '{target}' in the image without omitting any.\n"
-            "Rules:\n"
-            "1. Output exact coordinates [ymin, xmin, ymax, xmax] normalized on a 0 to 1000 scale.\n"
-            "2. Ensure each bounding box tightly fits the detected subject/object.\n"
-            "3. Do NOT duplicate coordinates or place all boxes in the same spot.\n"
-            "4. Return a valid JSON with key 'detections' containing objects with 'box_2d' and 'label'."
-        )
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.add_cors_headers()
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Max-Age", "86400")
+        self.end_headers()
 
-        response = client.chat.completions.create(
-            model="gpt-4o",  # Cambiado al modelo superior de visión
-            temperature=0.1,
-            response_format={"type": "json_object"},
-            messages=[
-                {
-                    "role": "system",
-                    "content": prompt_system
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": f"Detect all instances of '{target}'."},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_base64,
-                                "detail": "high"  # Obliga a analizar en alta definición
+    def do_POST(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+
+            # Permite imágenes en Base64 de hasta 4MB
+            if content_length <= 0 or content_length > 4 * 1024 * 1024:
+                self.send_json(413, {"error": "Petición demasiado grande (máx 4MB)."})
+                return
+
+            body = self.rfile.read(content_length)
+            data = json.loads(body.decode("utf-8"))
+
+            image_data = data.get("image")
+            target = str(data.get("message", "personas")).strip()
+
+            if not image_data:
+                self.send_json(400, {"error": "Se requiere una imagen en la petición."})
+                return
+
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                self.send_json(500, {"error": "OPENAI_API_KEY no está configurada."})
+                return
+
+            client = OpenAI(api_key=api_key)
+
+            prompt_system = f"""
+            Locate all exact instances of '{target}' in the image.
+            Return a strict JSON object with key 'detections' containing a list of detected objects.
+
+            For each object, provide:
+            - "box_2d": [ymin, xmin, ymax, xmax] as numbers on a normalized 0 to 1000 scale, where (0,0) is top-left and (1000,1000) is bottom-right. Be extremely precise and fit the bounding box tightly around the target.
+            - "label": short string label of what was detected.
+
+            Return raw JSON only, no markdown formatting.
+            """
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt_system},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": image_data,
+                                    "detail": "high"
+                                }
                             }
-                        }
-                    ]
-                }
-            ]
-        )
+                        ]
+                    }
+                ],
+                max_tokens=1000
+            )
 
-        result_content = response.choices[0].message.content
-        result_json = json.loads(result_content)
+            result_json = json.loads(response.choices[0].message.content)
+            self.send_json(200, {"detections": result_json.get("detections", [])})
 
-        return jsonify(result_json)
+        except Exception as error:
+            print(f"Error en /api/chat: {error}")
+            self.send_json(500, {"error": f"Error interno: {type(error).__name__}"})
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+            
