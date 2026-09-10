@@ -34,20 +34,19 @@ class handler(BaseHTTPRequestHandler):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
 
-            # Límite aumentado a 10 MB (10 * 1024 * 1024)
-            if content_length <= 0 or content_length > 10 * 1024 * 1024:
-                self.send_json(413, {"error": "Petición no válida o imagen demasiado grande (máx 10MB)."})
+            # CAMBIO AQUÍ: Se aumenta el límite de 5,000 bytes a 4 MB (4 * 1024 * 1024)
+            if content_length <= 0 or content_length > 4 * 1024 * 1024:
+                self.send_json(413, {"error": "Petición no válida o la imagen supera los 4MB."})
                 return
 
             body = self.rfile.read(content_length)
             data = json.loads(body.decode("utf-8"))
 
             image_data = data.get("image")
-            # Si no envía prompt, usamos una instrucción por defecto
-            prompt_text = str(data.get("message", "")).strip() or "Identifica y cuenta todos los elementos visibles en la imagen."
+            prompt_text = str(data.get("message", "")).strip() or "Identifica y cuenta los elementos presentes en la imagen."
 
             if not image_data:
-                self.send_json(400, {"error": "Es necesario adjuntar una imagen."})
+                self.send_json(400, {"error": "Se requiere adjuntar una imagen."})
                 return
 
             api_key = os.environ.get("OPENAI_API_KEY")
@@ -68,7 +67,7 @@ class handler(BaseHTTPRequestHandler):
                                 "type": "image_url",
                                 "image_url": {
                                     "url": image_data,
-                                    "detail": "high"
+                                    "detail": "low"  # 'low' para responder más rápido y gastar menos tokens
                                 }
                             }
                         ]
@@ -81,4 +80,4 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as error:
             print(f"Error en /api/chat: {error}")
-            self.send_json(500, {"error": "No fue posible procesar la consulta visual."})
+            self.send_json(500, {"error": f"Error del servidor: {type(error).__name__}"})
