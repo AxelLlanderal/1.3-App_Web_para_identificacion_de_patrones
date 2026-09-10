@@ -3,7 +3,6 @@ import os
 from http.server import BaseHTTPRequestHandler
 from openai import OpenAI
 
-# Lee el origen permitido configurado en Vercel
 ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "").strip().rstrip("/")
 
 class handler(BaseHTTPRequestHandler):
@@ -35,7 +34,6 @@ class handler(BaseHTTPRequestHandler):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
 
-            # Permite imágenes en Base64 de hasta 4MB
             if content_length <= 0 or content_length > 4 * 1024 * 1024:
                 self.send_json(413, {"error": "Petición demasiado grande (máx 4MB)."})
                 return
@@ -57,25 +55,29 @@ class handler(BaseHTTPRequestHandler):
 
             client = OpenAI(api_key=api_key)
 
-            prompt_system = f"""
-            Locate all exact instances of '{target}' in the image.
-            Return a strict JSON object with key 'detections' containing a list of detected objects.
-
-            For each object, provide:
-            - "box_2d": [ymin, xmin, ymax, xmax] as numbers on a normalized 0 to 1000 scale, where (0,0) is top-left and (1000,1000) is bottom-right. Be extremely precise and fit the bounding box tightly around the target.
-            - "label": short string label of what was detected.
-
-            Return raw JSON only, no markdown formatting.
-            """
+            system_prompt = (
+                "You are an accurate object detection system.\n"
+                f"Scan the entire image from left to right and locate EVERY individual instance of '{target}'.\n"
+                "Return a JSON object with key 'detections' containing a list of objects.\n\n"
+                "Each object must have:\n"
+                "- 'box_2d': [ymin, xmin, ymax, xmax] normalized on a 0 to 1000 scale relative to image dimensions.\n"
+                "- 'label': string naming the target.\n\n"
+                "CRITICAL: Be unique and precise for each distinct target. Do NOT overlap or repeat the exact same coordinates for different people."
+            )
 
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",  # Cambiado a gpt-4o para mayor precisión de coordenadas
                 response_format={"type": "json_object"},
+                temperature=0.1,
                 messages=[
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    },
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": prompt_system},
+                            {"type": "text", "text": f"Locate all instances of '{target}' in this image."},
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -86,7 +88,7 @@ class handler(BaseHTTPRequestHandler):
                         ]
                     }
                 ],
-                max_tokens=1000
+                max_tokens=2500
             )
 
             result_json = json.loads(response.choices[0].message.content)
@@ -95,5 +97,3 @@ class handler(BaseHTTPRequestHandler):
         except Exception as error:
             print(f"Error en /api/chat: {error}")
             self.send_json(500, {"error": f"Error interno: {type(error).__name__}"})
-
-            

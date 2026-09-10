@@ -78,6 +78,7 @@ function drawDetections(detections) {
   detections.forEach((det, index) => {
     let [ymin, xmin, ymax, xmax] = det.box_2d;
 
+    // Normalizar si la escala viene entre 0 y 1
     if (ymax <= 1.0 && xmax <= 1.0) {
       ymin *= 1000;
       xmin *= 1000;
@@ -85,16 +86,19 @@ function drawDetections(detections) {
       xmax *= 1000;
     }
 
+    // Convertir de escala 1000 a dimensiones del canvas
     const x = (xmin / 1000) * canvas.width;
     const y = (ymin / 1000) * canvas.height;
     const width = ((xmax - xmin) / 1000) * canvas.width;
     const height = ((ymax - ymin) / 1000) * canvas.height;
 
+    // Dibujar caja
     ctx.strokeStyle = "#00FF66";
     ctx.lineWidth = Math.max(3, canvas.width / 250);
     ctx.strokeRect(x, y, width, height);
 
-    const label = `#${index + 1} ${det.label || ""}`;
+    // Dibujar etiqueta
+    const label = `#${index + 1} ${det.label || "objeto"}`;
     const fontSize = Math.max(14, canvas.width / 35);
     ctx.font = `bold ${fontSize}px sans-serif`;
 
@@ -108,7 +112,6 @@ function drawDetections(detections) {
     ctx.fillText(label, x + 4, labelY + fontSize);
   });
 }
-
 function compressImage(img) {
   const tempCanvas = document.createElement("canvas");
   // Aumentar la resolución máxima para conservar detalles
