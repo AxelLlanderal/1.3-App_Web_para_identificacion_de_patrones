@@ -33,16 +33,21 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
-            if content_length <= 0:
-                self.send_json(400, {"error": "Petición vacía."})
+
+            # Límite aumentado a 10 MB (10 * 1024 * 1024)
+            if content_length <= 0 or content_length > 10 * 1024 * 1024:
+                self.send_json(413, {"error": "Petición no válida o imagen demasiado grande (máx 10MB)."})
                 return
 
             body = self.rfile.read(content_length)
             data = json.loads(body.decode("utf-8"))
 
-            image_data = data.get("image")  # String base64 de la imagen
+            image_data = data.get("image")
+            # Si no envía prompt, usamos una instrucción por defecto
+            prompt_text = str(data.get("message", "")).strip() or "Identifica y cuenta todos los elementos visibles en la imagen."
+
             if not image_data:
-                self.send_json(400, {"error": "Debes subir una imagen para analizar."})
+                self.send_json(400, {"error": "Es necesario adjuntar una imagen."})
                 return
 
             api_key = os.environ.get("OPENAI_API_KEY")
@@ -52,21 +57,13 @@ class handler(BaseHTTPRequestHandler):
 
             client = OpenAI(api_key=api_key)
 
-            # Promp enfocado a identificar y contar
-            prompt_instruction = (
-                "Analiza la siguiente imagen. Tu objetivo es:\n"
-                "1. Identificar detalladamente todos los objetos y elementos presentes.\n"
-                "2. Contar la cantidad exacta de cada elemento identificado.\n"
-                "3. Presentar un desglose o lista en formato claro, indicando cantidad y descripción de cada tipo de elemento encontrado."
-            )
-
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": prompt_instruction},
+                            {"type": "text", "text": prompt_text},
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -83,5 +80,5 @@ class handler(BaseHTTPRequestHandler):
             self.send_json(200, {"reply": response.choices[0].message.content})
 
         except Exception as error:
-            print(f"Error: {error}")
-            self.send_json(500, {"error": "Ocurrió un error al procesar la imagen."})
+            print(f"Error en /api/chat: {error}")
+            self.send_json(500, {"error": "No fue posible procesar la consulta visual."})

@@ -13,7 +13,7 @@
        <header class="header">
            <div>
                <h1>Contador & Detector de Imagen</h1>
-               <p>Sube una imagen para identificar y contar sus elementos</p>
+               <p>Sube una imagen e indica qué deseas contar</p>
            </div>
            <span class="status">● Visión IA lista</span>
        </header>
@@ -22,19 +22,25 @@
            <div class="message assistant">
                <div class="message-label">IA</div>
                <div class="message-content">
-                   Hola. Selecciona una imagen desde tu dispositivo para que pueda analizarla, señalar y contar todos sus elementos.
+                   Selecciona una imagen e indica en el texto lo que deseas analizar o contar (ej: "cuenta solo las mujeres" o "identifica todos los objetos").
                </div>
            </div>
        </section>
 
        <form id="chatForm" class="chat-form">
            <input
+               id="messageInput"
+               type="text"
+               placeholder="¿Qué quieres que cuente? (opcional)"
+               autocomplete="off"
+           >
+           <input
                id="imageInput"
                type="file"
                accept="image/*"
                required
            >
-           <button id="sendButton" type="submit">Analizar Imagen</button>
+           <button id="sendButton" type="submit">Analizar</button>
        </form>
 
        <footer class="footer">
